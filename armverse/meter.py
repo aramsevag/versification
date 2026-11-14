@@ -5,6 +5,9 @@ both 4|4|3 and 4|3|4).  Poems are usually metrically consistent, so we choose,
 greedily, the pattern admitted by the largest number of lines, assign those
 lines to it, and repeat with the remaining lines.
 
+Lines may need poetic licences (dieresis, syneresis, a dropped or added ը) to
+fit; see ``choose_patterns``.
+
 Tie-breaks between equally supported patterns: fewer groups, then fewer places
 where a group is longer than the previous one (Armenian lines tend to end with
 the shorter group: 4|4|3, 4|3), then more balanced groups (4|4 over 5|3),
@@ -13,6 +16,7 @@ then larger groups first.
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -48,6 +52,10 @@ class ScannedLine:
         return self.scansion.pattern if self.scansion else None
 
     @property
+    def licences(self) -> list[str]:
+        return self.scansion.licences if self.scansion else []
+
+    @property
     def marked(self):
         return self.analysis.render(self.scansion)
 
@@ -75,22 +83,37 @@ class PoemResult:
         return [out[k] for k in sorted(out)]
 
 
-def choose_patterns(analyses: list[LineAnalysis], main_threshold: float = 0.15):
-    remaining = set(range(len(analyses)))
+def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.5,
+                    main_threshold: float = 0.15, iterations: int = 20):
+    """Assign one pattern per line.
+
+    Score of pattern p for a line = log(frequency of p in the poem) minus
+    ``licence_penalty`` per poetic licence the line needs to realise p.
+    Frequencies start as each pattern's support (lines admitting it, a
+    licensed admission counting 1/2 per licence) and are re-estimated from the
+    assignments until stable.  So a licence (dieresis, dropped ը, ...) is used
+    only when it brings the line into a meter that is clearly more common in
+    the poem than the line's licence-free alternatives.
+    """
+    freq: Counter = Counter()
+    for a in analyses:
+        for p, sc in a.candidates.items():
+            freq[p] += 0.5 ** sc.cost
     chosen: dict[int, tuple[int, ...]] = {}
-    order: list[tuple[tuple[int, ...], int]] = []
-    while remaining:
-        support = Counter()
-        for i in remaining:
-            support.update(analyses[i].candidates.keys())
-        if not support:
+    for _ in range(iterations):
+        new = {}
+        for i, a in enumerate(analyses):
+            if not a.candidates:
+                continue
+            new[i] = min(a.candidates, key=lambda p: (
+                -(math.log(freq[p] + 0.1)
+                  - licence_penalty * a.candidates[p].cost), _pref(p)))
+        if new == chosen:
             break
-        best = min(support, key=lambda p: (-support[p], _pref(p)))
-        members = [i for i in remaining if best in analyses[i].candidates]
-        for i in members:
-            chosen[i] = best
-        remaining -= set(members)
-        order.append((best, len(members)))
+        chosen = new
+        freq = Counter(chosen.values())
+    counts = Counter(chosen.values())
+    order = sorted(counts.items(), key=lambda pc: (-pc[1], _pref(pc[0])))
     n = len(analyses) or 1
     main = {p for p, c in order if c >= 2 and c / n >= main_threshold}
     if not main and order:
@@ -100,7 +123,8 @@ def choose_patterns(analyses: list[LineAnalysis], main_threshold: float = 0.15):
 
 def scan_poem(text: str, title: str = "", orthography: str = "auto",
               min_group: int = 2, max_group: int = 5,
-              prothesis: str = "both") -> PoemResult:
+              prothesis: str = "both", max_licences: int = 2,
+              licence_penalty: float = 0.5) -> PoemResult:
     classical = (is_classical(text) if orthography == "auto"
                  else orthography == "classical")
     raw: list[tuple[int, int, str]] = []
@@ -116,13 +140,14 @@ def scan_poem(text: str, title: str = "", orthography: str = "auto",
         num += 1
         raw.append((stanza, num, s))
 
-    analyses = [analyze_line(s, classical, min_group, max_group, prothesis)
+    analyses = [analyze_line(s, classical, min_group, max_group, prothesis,
+                             max_licences)
                 for _, _, s in raw]
     keep = [i for i, a in enumerate(analyses) if a.words]
     analyses = [analyses[i] for i in keep]
     raw = [raw[i] for i in keep]
 
-    chosen, order, main = choose_patterns(analyses)
+    chosen, order, main = choose_patterns(analyses, licence_penalty)
     lines = []
     for i, ((st, nm, _), a) in enumerate(zip(raw, analyses)):
         p = chosen.get(i)

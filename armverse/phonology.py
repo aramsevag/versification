@@ -27,6 +27,7 @@ classical-orthography poetry):
 
 from __future__ import annotations
 
+import itertools
 import re
 from dataclasses import dataclass, field
 
@@ -62,11 +63,15 @@ class Seg:
 
 
 def is_classical(text: str) -> bool:
-    """Heuristic: classical (Mashtotsian) orthography uses ւ outside of ու."""
-    for w in re.findall(r"[Ա-և]+", text.lower()):
-        if w == "եւ":
-            continue  # also used in reformed spelling
-        if re.search(r"(?<!ո)ւ", w):
+    """Heuristic: does the text use classical (Mashtotsian) orthography, as in
+    Western Armenian and pre-1922 poetry?  Markers: ւ outside ու (իւ, աւ, եւ+),
+    եա (except modern -եական), word-internal է (սիրէ), Western կը / մը."""
+    for w in re.findall(r"[\u0531-\u0587]+", text.lower()):
+        if w in ("կը", "մը"):
+            return True
+        if w != "եւ" and re.search(r"(?<!ո)ւ", w):
+            return True
+        if re.search(r"եա(?!կան)", w) or (len(w) > 1 and "է" in w[1:]):
             return True
     return False
 
@@ -141,8 +146,10 @@ def _final(run: list[int], segs: list[Seg], link: bool) -> list[int]:
 
 @dataclass
 class WordVariant:
-    insertions: list[int]  # segment indices; len(segs) means "at the end"
     syllables: int
+    cost: int = 0  # number of poetic licences used
+    marks: list[tuple[int, str]] = field(default_factory=list)  # (core idx, text)
+    licences: list[str] = field(default_factory=list)
     prothesis: bool = False
 
 
@@ -154,30 +161,44 @@ class WordAnalysis:
     segs: list[Seg]
     variants: list[WordVariant] = field(default_factory=list)
 
+    def _tok_index(self, ci: int) -> int:
+        if not self.core_map:
+            return len(self.token)
+        if ci < len(self.core_map):
+            return self.core_map[ci]
+        return self.core_map[-1] + 1
+
     def render(self, v: int = 0) -> str:
-        """Token with inserted ը made visible."""
+        """Token with restored ը visible; dieresis shown as ·, syneresis as ‿."""
         var = self.variants[v]
-        pos_in_token = []
-        for k in var.insertions:
-            if k < len(self.segs):
-                ci = self.segs[k].start
-                pos_in_token.append(self.core_map[ci] if ci < len(self.core_map)
-                                    else self.core_map[-1] + 1)
-            else:
-                pos_in_token.append(self.core_map[-1] + 1 if self.core_map else len(self.token))
         out = self.token
-        for p in sorted(pos_in_token, reverse=True):
-            schwa = "ը"
-            if p < len(out) and out[p].isupper() and p == (self.core_map[0] if self.core_map else 0):
+        for ci, text in sorted(var.marks, key=lambda m: m[0], reverse=True):
+            p = self._tok_index(ci)
+            if (text == "ը" and ci == 0 and p < len(out) and out[p].isupper()):
                 out = out[:p] + "Ը" + out[p].lower() + out[p + 1:]
-                continue
-            out = out[:p] + schwa + out[p:]
+            else:
+                out = out[:p] + text + out[p:]
         return out
 
 
+def _ins_pos(segs: list[Seg], k: int, core_len: int) -> int:
+    return segs[k].start if k < len(segs) else core_len
+
+
 def analyze_word(token: str, next_vowel: bool = False, classical: bool = False,
-                 prothesis: str = "both") -> WordAnalysis:
-    """prothesis: 'both' (ambiguous, default), 'always', 'never'."""
+                 prothesis: str = "both", max_licences: int = 2) -> WordAnalysis:
+    """Analyze one word.
+
+    Returns all pronunciation variants: variant 0 is the default reading; the
+    others use up to ``max_licences`` poetic licences:
+      * dropping an unwritten schwa      (նման = 1 syllable instead of նըման)
+      * adding a schwa in a cluster      (Աստղերու -> Աստըղերու)
+      * dieresis of a diphthong          (classical Ովկեանի = Ով-կե-ա-նի)
+      * syneresis of a hiatus            (միայն = մյայն)
+    The prothetic ը (ստանալ / ըստանալ) is free in both directions
+    (prothesis='both'), or forced with 'always' / 'never'.
+    Written ը is always pronounced.
+    """
     low = token.lower()
     core_chars, core_map = [], []
     for i, ch in enumerate(low):
@@ -189,44 +210,89 @@ def analyze_word(token: str, next_vowel: bool = False, classical: bool = False,
     wa = WordAnalysis(token, core, core_map, segs)
     if not segs:
         return wa
-
-    nv = sum(1 for s in segs if s.kind == "V")
+    L = len(core)
     vidx = [i for i, s in enumerate(segs) if s.kind == "V"]
+    nv = len(vidx)
 
-    if nv == 0:  # consonant-only token (rare): give it one schwa
-        wa.variants.append(WordVariant([1 if len(segs) > 1 else 0], 1))
+    if nv == 0:
+        # consonant-only token: elided clitic (կ՚, մ՚) -> 0 syllables if
+        # marked with an apostrophe, otherwise give it one schwa.
+        if re.search(r"[՚'’]", token):
+            wa.variants.append(WordVariant(0))
+        else:
+            k = 1 if len(segs) > 1 else 0
+            wa.variants.append(WordVariant(1, marks=[(_ins_pos(segs, k, L), "ը")]))
         return wa
 
-    base: list[int] = []
-    # medial runs
+    default: list[int] = []
+    optional_add: list[int] = []
     for a, b in zip(vidx, vidx[1:]):
-        base += _medial(list(range(a + 1, b)), segs)
-    # final run
-    base += _final(list(range(vidx[-1] + 1, len(segs))), segs, next_vowel)
+        run = list(range(a + 1, b))
+        ins = _medial(run, segs)
+        default += ins
+        if len(run) >= 3 and not ins:
+            optional_add.append(run[-1])
+    frun = list(range(vidx[-1] + 1, len(segs)))
+    fins = _final(frun, segs, next_vowel)
+    default += fins
+    if (len(frun) >= 2 and not fins and segs[frun[-1]].letter == "ղ"
+            and segs[frun[-2]].cls == "O"):
+        optional_add.append(frun[-1])  # աստղ -> աստըղ
 
-    # initial run
     init = list(range(0, vidx[0]))
-    variants: list[tuple[list[int], bool]] = []
+    proth_choices: list[tuple[list[int], bool]] = [([], False)]
     if len(init) >= 2:
         c1, c2 = segs[init[0]], segs[init[1]]
         if c1.letter in ("ս", "շ", "զ") and c2.letter in STOPS:
             rest = _medial(init[1:], segs) if len(init) > 2 else []
-            with_p = ([0] + rest, True)
-            without = (rest, False)
-            if prothesis == "always":
-                variants = [with_p]
-            elif prothesis == "never":
-                variants = [without]
-            else:
-                variants = [with_p, without]
+            default += rest
+            opts = {"always": [([0], True)], "never": [([], False)]}
+            proth_choices = opts.get(prothesis, [([0], True), ([], False)])
         elif c2.cls == "G":
-            variants = [(_medial(init[1:], segs), False)]
+            default += _medial(init[1:], segs)
         else:
-            variants = [([init[1]] + _medial(init[1:], segs), False)]
-    else:
-        variants = [([], False)]
+            default += [init[1]] + _medial(init[1:], segs)
+    default = sorted(set(default))
 
-    for ins, p in variants:
-        allins = sorted(set(ins + base))
-        wa.variants.append(WordVariant(allins, nv + len(allins), p))
+    # optional licences: (cost, delta, marks_add, schwa_removed, description)
+    options: list[tuple[int, list[tuple[int, str]], int | None, str]] = []
+    for k in default:
+        options.append((-1, [], k, "−ը"))
+    for k in optional_add:
+        options.append((+1, [(_ins_pos(segs, k, L), "ը")], None, "+ը"))
+    for i, sg in enumerate(segs):
+        if sg.kind == "V" and sg.end - sg.start == 2 and sg.letter in ("իւ", "եա", "եօ"):
+            options.append((+1, [(sg.start + 1, "·")], None, "dieresis"))
+        if sg.kind == "C" and sg.end - sg.start == 2:  # ու read as v
+            options.append((+1, [(sg.end, "·")], None, "dieresis"))
+        if i + 1 < len(segs) and sg.kind == "V" and segs[i + 1].kind == "V":
+            options.append((-1, [(segs[i + 1].start, "‿")], None, "syneresis"))
+
+    subsets: list[tuple[int, ...]] = [()]
+    for r in range(1, max_licences + 1):
+        subsets += list(itertools.combinations(range(len(options)), r))
+
+    seen = set()
+    for pins, is_p in proth_choices:
+        for sub in subsets:
+            removed = {options[j][2] for j in sub if options[j][2] is not None}
+            ins = [k for k in default if k not in removed]
+            marks = [(0, "ը")] if pins else []
+            marks += [(_ins_pos(segs, k, L), "ը") for k in ins]
+            delta = 0
+            lic = []
+            for j in sub:
+                d, m, _, desc = options[j]
+                delta += d
+                marks += m
+                lic.append(f"{token.strip(PUNCT)}: {desc}")
+            syl = nv + len(ins) + len(pins) + delta
+            key = (syl, len(sub))
+            if syl < 1 or key in seen:
+                continue  # keep the first (simplest) way to reach a count
+            seen.add(key)
+            wa.variants.append(WordVariant(syl, len(sub), marks, lic, is_p))
     return wa
+
+
+PUNCT = "\u055A\u055B\u055C\u055D\u055E\u055F\u0589,.;:!?«»\"'’()—–-…"
