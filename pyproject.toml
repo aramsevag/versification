@@ -1,0 +1,15 @@
+[project]
+name = "armverse"
+version = "0.1.0"
+description = "Automatic rhythm (syllable-group) analysis of Armenian poetry"
+requires-python = ">=3.9"
+
+[project.scripts]
+armverse = "armverse.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["armverse"]
