@@ -36,6 +36,7 @@ Abeghyan accepts both readings in these cases, so the poem's meter decides:
 - **ը before վ after a valid coda**: Աստված / Աստըված, ջարդված / ջարդըված. The elision is "always possible" when the first two consonants can close a syllable (§14 Գ, p. 46).
 - **ցն, ցր, ձն between vowels**: զարթեցնել / զարթեցընել (§14 Դ, p. 47).
 - **Final ն article before a vowel, linked**: աղջիկն ասաց = աղջի-կնասաց (§15 Գ, p. 52).
+- **Final ն article before հ** (and before յ + vowel in classical spelling, pronounced h): ափերն հեռակայ = 2 + 3. Abeghyan calls this elision lighter than before other consonants but still a licence (§15 Ա, p. 49). **[choice]** It is treated as normal on the project author's judgement. A pause (punctuation) still blocks it (§15 Բ).
 - **Final ս, դ, մ after a consonant that can close a syllable with them**: սերս / սերըս, այժմ / այժըմ. **[choice]** Abeghyan treats the article -ս/-դ as a separate ը-syllable (սերըս, p. 51), but lexical words like ներս, մարդ, բերդ are one syllable. The program can't tell an article from a word ending, so it leaves both readings open.
 
 ## 3. Licences: light (cost 1) and heavy (cost 2)

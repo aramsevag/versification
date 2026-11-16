@@ -44,6 +44,12 @@ class TestAbeghyanSyllables(unittest.TestCase):
         a = analyze_word("Ովկեանի", classical=True)
         self.assertIn((4, 1), [(v.syllables, v.cost) for v in a.variants])
 
+    def test_article_before_h(self):  # RULES.md §2
+        a = analyze_word("ափերն", next_h=True, pause_after=False)
+        self.assertIn((2, 0), [(v.syllables, v.cost) for v in a.variants])
+        a = analyze_word("ափերն,", next_h=True, pause_after=True)
+        self.assertNotIn((2, 0), [(v.syllables, v.cost) for v in a.variants])
+
     def test_lexicon(self):  # armverse/data/lexicon.txt
         self.assertEqual(nat("Ուխտագնաց,"), ("Ուխտագընաց,", 4))
 

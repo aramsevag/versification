@@ -92,9 +92,12 @@ def analyze_line(line: str, classical: bool = False, min_group: int = 2,
         prev = end_type(toks[i - 1][0], classical) if i else "start"
         nxt = segment(_core(toks[i + 1][0]), classical) if i + 1 < len(toks) else []
         next_vowel = bool(nxt) and nxt[0].kind == "V"
+        next_h = bool(nxt) and (nxt[0].letter == "հ" or (
+            classical and nxt[0].letter == "յ" and len(nxt) > 1
+            and nxt[1].kind == "V"))
         pause = i + 1 == len(toks) or _pause_after(tok)
         words.append(analyze_word(tok, prev, next_vowel, pause, classical,
-                                  max_cost))
+                                  max_cost, next_h=next_h))
     keep = [i for i, w in enumerate(words) if w.variants]
     words = [words[i] for i in keep]
     toks = [toks[i] for i in keep]

@@ -257,12 +257,14 @@ def _apply_lexicon(token: str) -> str:
 
 def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
                  pause_after: bool = True, classical: bool = False,
-                 max_cost: int = 3, max_options: int = 4) -> WordAnalysis:
+                 max_cost: int = 3, max_options: int = 4,
+                 next_h: bool = False) -> WordAnalysis:
     """All readings of one word in context.
 
     prev_end: 'start' (line start), 'V' (previous word ends in a vowel),
               'ը' (in ը), or the previous word's final consonant letter.
-    next_vowel / pause_after: what follows the word.
+    next_vowel / next_h / pause_after: what follows the word (next_h: it
+    begins with հ, or with յ + vowel in classical spelling).
     """
     token = _apply_lexicon(token)
     core, cmap = core_of(token)
@@ -361,6 +363,10 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
                 c = 2  # §15 Դ p. 54
             else:
                 c = 1 if len(F) == 2 else 2  # §15 Ե p. 55-56
+        elif next_h and not pause_after and last and segs[k].letter == "ն":
+            # §15 Ա p. 49: lighter before հ (յ = հ); treated as normal on
+            # the project author's judgement (ափերն հեռակայ)
+            c = 0
         else:
             c = 2  # §15 Ա-Բ: "for the eye only"
         natural.append(Ins(k, c, "§15"))
