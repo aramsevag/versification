@@ -17,7 +17,7 @@ from functools import lru_cache
 from .phonology import (PUNCT_PAUSE, WordAnalysis, analyze_word, core_of,
                         end_type, segment)
 
-PROCLITICS = {"մի", "կը", "չը", "ու", "և", "եւ", "ի", "յ", "զ", "առ", "ըստ", "ընդ",
+PROCLITICS = {"մի", "կը", "չը", "ու", "և", "եւ", "եվ", "ի", "յ", "զ", "առ", "ըստ", "ընդ",
               "կ", "չ"}
 # Unstressed words a member may still end on, at the soft-cut cost
 # (Չըգիտնալ որ | ...); confirmed by the project author.
