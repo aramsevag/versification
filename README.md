@@ -24,28 +24,31 @@ Input: one poem per `.txt` file (UTF-8), stanzas separated by blank lines, lines
 with `#` ignored (titles, authors). Several poems in one file: `--separator "***"`.
 
 Options: `--orthography auto|modern|classical` (auto-detected), `--min-group/--max-group`
-(group size limits, default 2–5), `--prothesis both|always|never` (ստանալ = ըստանալ?).
+(member size limits, default 2–5), `--max-cost` (licence budget per line), `--strict-members`.
 
 ## How it works
 
-1. **Syllabification** (`armverse/phonology.py`). One syllable per vowel (ա ե է ը ի ո օ ու, և = եվ),
-   plus the **unwritten schwa** restored by rule:
-   initial clusters (սրտիս → սըրտիս, դրոշ → դըրոշ), medial obstruent+sonorant in 3+ clusters
-   (դարձնել → դարձընել, անձրև → անձըրև), final rising clusters (բարձր → բարձըր).
-   The linking article ն takes no schwa before a vowel (դաշտն ուր). Classical orthography:
-   իւ, եա = one vowel; ու before a vowel = v (Աստուած). The prothetic ը of ստ-/սպ-/շտ-… is
-   treated as optional and resolved per poem.
-2. **Candidate segmentations** (`armverse/scan.py`). Each line is cut into rhythmic groups at
-   word boundaries — never after a proclitic (մի, ի…) or before an enclitic (է, եմ, էլ…).
-3. **Poem-level choice** (`armverse/meter.py`). A line alone is often ambiguous (the example
-   also fits 4|3|4), so the pattern admitted by the most lines in the poem wins; ties prefer
-   fewer groups, no group longer than the one before it (4|4|3), and balanced groups.
-   Lines outside the poem's main meters are marked `*`.
+The rules follow Manuk Abeghyan, *Հայոց լեզվի տաղաչափություն* (1971 edition). They are
+listed with page references in **[RULES.md](RULES.md)**, which also marks every place where
+the program makes its own choice.
 
-## Limitations / ideas
-- Syllable rules follow standard Eastern Armenian pronunciation; poets' licences
-  (elisions marked with ՚, archaisms) may need extra rules — add failing words to `tests/`.
-- Only group *sizes* are detected; stress-foot (iamb/trochee/anapest) analysis and rhyme
-  detection would be natural next steps.
+1. **Syllables** (`armverse/phonology.py`). Each word gets every reading the rules allow, each
+   with a cost: 0 for natural pronunciation (the unwritten ը restored: ճըրագ, մըկըրտիչ, աստըղ,
+   սիրտըս), 1 for a light licence, 2 for a heavy one. Licences are dropping or adding ը,
+   dieresis and synizesis, as graded by Abeghyan (§§14–18).
+2. **Members** (`armverse/scan.py`). A line is cut into members of 2–5 syllables. A member
+   ends on a stressed syllable, so a cut can fall inside a word before its unstressed final
+   syllable (ձեռ|քըդ, §30.3). Cuts after an unstressed ending (Ու փչում է | աշնան) cost 1;
+   `--strict-members` forbids them.
+3. **Meter** (`armverse/meter.py`). The poem's meter is the pattern its lines share, with a bonus
+   for meters Abeghyan catalogues (8 = 4+4, 11 = 4+4+3, 20 = 5+5+5+5 …). A line uses a licence
+   only if that brings it into the poem's meter. Every licence used is printed next to the line.
 
-Run tests: `python3 -m unittest`
+## Testing
+
+- `python3 -m unittest` runs Abeghyan's own word examples and the hand-scanned lines.
+- `python3 -m tests.gold_report` prints the line-by-line comparison with
+  `tests/data/gold.txt`. Add your own hand scansions there to measure accuracy.
+
+Not yet handled: «Հայրենի կարգ», ashugh meters, purely stress-based and free verse (see
+RULES.md §6).

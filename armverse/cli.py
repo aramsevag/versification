@@ -22,14 +22,16 @@ def _opts(p: argparse.ArgumentParser):
                    default="auto")
     p.add_argument("--min-group", type=int, default=2)
     p.add_argument("--max-group", type=int, default=5)
-    p.add_argument("--prothesis", choices=["both", "always", "never"],
-                   default="both",
-                   help="prothetic ը in initial ս/շ/զ+stop (ստանալ -> ըստանալ)")
+    p.add_argument("--max-cost", type=int, default=3,
+                   help="maximum total licence cost per line (RULES.md §3)")
+    p.add_argument("--strict-members", action="store_true",
+                   help="never end a member on an unstressed syllable (§30.3)")
 
 
 def _kw(a):
     return dict(orthography=a.orthography, min_group=a.min_group,
-                max_group=a.max_group, prothesis=a.prothesis)
+                max_group=a.max_group, max_cost=a.max_cost,
+                soft_cut_cost=None if a.strict_members else 1)
 
 
 def print_poem(r: PoemResult, out=sys.stdout):
@@ -41,7 +43,8 @@ def print_poem(r: PoemResult, out=sys.stdout):
             print(file=out)
         stanza = l.stanza
         flag = "" if l.regular else "  *"
-        print(f"{l.marked:<60} {fmt(l.pattern)}{flag}", file=out)
+        lic = f"   [{'; '.join(l.licences)}]" if l.licences else ""
+        print(f"{l.marked:<60} {fmt(l.pattern)}{flag}{lic}", file=out)
     meters = ", ".join(f"{fmt(p)} ×{c}" for p, c in r.meters)
     print(f"-- meters: {meters}; regularity {r.regularity:.0%}"
           f"{'; classical orthography' if r.classical else ''}", file=out)
@@ -89,6 +92,8 @@ def main(argv=None):
         r = scan_poem(a.text, **kw)
         l = r.lines[0]
         print(f"{l.marked}  {fmt(l.pattern)}")
+        if l.licences:
+            print("licences:", "; ".join(l.licences))
         alts = sorted(l.analysis.candidates, key=lambda p: (len(p), p))
         print("other possible segmentations:", ", ".join(
             "|".join(map(str, p)) for p in alts if p != l.pattern) or "none")
@@ -124,6 +129,7 @@ def main(argv=None):
                     "syllables": sum(l.pattern) if l.pattern else "",
                     "pattern": "|".join(map(str, l.pattern)) if l.pattern else "",
                     "regular": int(l.regular),
+                    "licences": "; ".join(l.licences),
                     "alternatives": len(l.analysis.candidates),
                 })
                 if l.pattern:

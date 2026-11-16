@@ -1,17 +1,14 @@
-"""Poem-level meter inference.
+"""Poem-level meter inference (RULES.md §6).
 
-A single line is often ambiguous ("Ահա սըրտիս խոպան դաշտն ուր մի անգամ" fits
-both 4|4|3 and 4|3|4).  Poems are usually metrically consistent, so we choose,
-greedily, the pattern admitted by the largest number of lines, assign those
-lines to it, and repeat with the remaining lines.
+Each line has candidate patterns, each with a cost (licences + soft cuts).
+The poem's meter is found by iterating: score(p) = log(frequency of p in the
+poem) + catalogue bonus − penalty × cost, assign every line its best pattern,
+re-estimate the frequencies, repeat until stable.  So a line uses a licence
+only when it brings it into a meter that is more common in the poem, or that
+Abeghyan catalogues.
 
-Lines may need poetic licences (dieresis, syneresis, a dropped or added ը) to
-fit; see ``choose_patterns``.
-
-Tie-breaks between equally supported patterns: fewer groups, then fewer places
-where a group is longer than the previous one (Armenian lines tend to end with
-the shorter group: 4|4|3, 4|3), then more balanced groups (4|4 over 5|3),
-then larger groups first.
+Remaining ties: fewer members, then no member longer than the one before it
+(4|4|3 over 4|3|4), then more balanced members, then larger members first.
 """
 
 from __future__ import annotations
@@ -83,18 +80,24 @@ class PoemResult:
         return [out[k] for k in sorted(out)]
 
 
-def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.5,
-                    main_threshold: float = 0.15, iterations: int = 20):
-    """Assign one pattern per line.
+# Meters catalogued by Abeghyan, Part 2 (see RULES.md §6).
+CATALOGUE = {
+    (4, 4), (4, 4, 4), (4, 4, 4, 4),            # §§43-45
+    (4, 3), (4, 4, 3), (4, 4, 4, 3),            # §§46-48
+    (4, 3, 4, 3), (3, 4, 5), (4, 5), (4, 4, 5),  # §§49-52
+    (3, 3), (3, 3, 3), (3, 3, 3, 3),            # §§55-57
+    (3, 3, 2, 3), (3, 3, 3, 2), (2, 3, 3),      # §§58, 60, 62
+    (5,), (5, 5), (5, 5, 5), (5, 5, 5, 5),      # §§64-67
+    (4, 2, 4, 2),                               # 6+6, as the user scans it
+}
 
-    Score of pattern p for a line = log(frequency of p in the poem) minus
-    ``licence_penalty`` per poetic licence the line needs to realise p.
-    Frequencies start as each pattern's support (lines admitting it, a
-    licensed admission counting 1/2 per licence) and are re-estimated from the
-    assignments until stable.  So a licence (dieresis, dropped ը, ...) is used
-    only when it brings the line into a meter that is clearly more common in
-    the poem than the line's licence-free alternatives.
-    """
+
+def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.4,
+                    catalogue_bonus: float = 1.0, main_threshold: float = 0.15,
+                    iterations: int = 20):
+    """Assign one pattern per line (see module docstring).  Initial
+    frequencies: each line supports every pattern it admits, discounted by
+    half per unit of cost."""
     freq: Counter = Counter()
     for a in analyses:
         for p, sc in a.candidates.items():
@@ -107,6 +110,7 @@ def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.5,
                 continue
             new[i] = min(a.candidates, key=lambda p: (
                 -(math.log(freq[p] + 0.1)
+                  + (catalogue_bonus if p in CATALOGUE else 0.0)
                   - licence_penalty * a.candidates[p].cost), _pref(p)))
         if new == chosen:
             break
@@ -123,8 +127,9 @@ def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.5,
 
 def scan_poem(text: str, title: str = "", orthography: str = "auto",
               min_group: int = 2, max_group: int = 5,
-              prothesis: str = "both", max_licences: int = 2,
-              licence_penalty: float = 0.5) -> PoemResult:
+              max_cost: int = 3, soft_cut_cost: int | None = 1,
+              licence_penalty: float = 0.4,
+              catalogue_bonus: float = 1.0) -> PoemResult:
     classical = (is_classical(text) if orthography == "auto"
                  else orthography == "classical")
     raw: list[tuple[int, int, str]] = []
@@ -140,14 +145,15 @@ def scan_poem(text: str, title: str = "", orthography: str = "auto",
         num += 1
         raw.append((stanza, num, s))
 
-    analyses = [analyze_line(s, classical, min_group, max_group, prothesis,
-                             max_licences)
+    analyses = [analyze_line(s, classical, min_group, max_group, max_cost,
+                             soft_cut_cost)
                 for _, _, s in raw]
     keep = [i for i, a in enumerate(analyses) if a.words]
     analyses = [analyses[i] for i in keep]
     raw = [raw[i] for i in keep]
 
-    chosen, order, main = choose_patterns(analyses, licence_penalty)
+    chosen, order, main = choose_patterns(analyses, licence_penalty,
+                                         catalogue_bonus)
     lines = []
     for i, ((st, nm, _), a) in enumerate(zip(raw, analyses)):
         p = chosen.get(i)
