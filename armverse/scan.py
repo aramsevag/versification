@@ -3,7 +3,7 @@
 A *pattern* is a tuple of member sizes, e.g. (4, 4, 3).  Cuts:
   * after a word whose last syllable is stressed            cost 0
   * inside a word, before its unstressed final ը-syllable    cost 0  (ձեռ|քըդ)
-  * after an unstressed ending (enclitic, final ը)           cost `soft_cut_cost`
+  * after an unstressed ending (enclitic, final ը)           cost `soft_cut_cost` (0.5)
   * after a proclitic or inside a hyphenated word            never
 Each pattern keeps the cheapest reading (licences + cuts) that realises it.
 """
@@ -58,8 +58,9 @@ class Scansion:
     pattern: tuple[int, ...]
     variant: tuple[int, ...]  # chosen reading per word
     cuts: tuple[tuple[int, str], ...]  # (word index, 'after' | 'mid')
-    cost: int = 0
+    cost: float = 0
     licences: list[str] = field(default_factory=list)
+    extra: int = 0  # hypercatalectic: unstressed syllables after the meter (§36)
 
 
 @dataclass
@@ -85,7 +86,8 @@ class LineAnalysis:
 
 def analyze_line(line: str, classical: bool = False, min_group: int = 2,
                  max_group: int = 5, max_cost: int = 3,
-                 soft_cut_cost: int | None = 1) -> LineAnalysis:
+                 soft_cut_cost: float | None = 0.5,
+                 hyper_cost: float = 0.5) -> LineAnalysis:
     toks = tokenize(line)
     words: list[WordAnalysis] = []
     for i, (tok, _) in enumerate(toks):
@@ -136,6 +138,14 @@ def analyze_line(line: str, classical: bool = False, min_group: int = 2,
                 if i == n - 1:
                     if s >= lo:
                         put((s,), base, (vi,), ())
+                    # §36: an unstressed final syllable may stand outside the
+                    # meter (hypercatalectic line), e.g. ... ալպյան վա՛րդ(ը)
+                    if not closes:
+                        if clitic[i] and v.syllables == 1 and acc >= lo:
+                            put((acc, "+1"), base + hyper_cost, (vi,), ())
+                        elif (v.final_unstressed and not clitic[i]
+                              and v.syllables >= 2 and s - 1 >= lo):
+                            put((s - 1, "+1"), base + hyper_cost, (vi,), ())
                     continue
                 if closes:
                     if s >= lo:
@@ -156,10 +166,17 @@ def analyze_line(line: str, classical: bool = False, min_group: int = 2,
         return res
 
     for pat, (cost, var, cuts) in rec(0, 0).items():
+        extra = 0
+        if pat and pat[-1] == "+1":
+            pat, extra = pat[:-1], 1
         lic = [l for w, vi in zip(words, var) for l in w.variants[vi].licences]
         soft = sum(1 for (i, t) in cuts if t == "after"
                    and (words[i].variants[var[i]].final_unstressed or clitic[i]))
         if soft:
             lic.append(f"{soft}× cut after an unstressed ending (§30.3)")
-        la.candidates[pat] = Scansion(pat, var, cuts, cost, lic)
+        if extra:
+            lic.append("+1 unstressed syllable after the last stress (§36)")
+        if pat in la.candidates and la.candidates[pat].cost <= cost:
+            continue
+        la.candidates[pat] = Scansion(pat, var, cuts, cost, lic, extra)
     return la

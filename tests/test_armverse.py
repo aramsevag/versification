@@ -79,6 +79,14 @@ class TestScansion(unittest.TestCase):
         self.assertEqual([l.pattern for l in r.lines], [(4, 4, 3)] * 4)
         self.assertIn("dieresis", r.lines[1].licences[0])
 
+    def test_hypercatalectic_lines(self):  # §36 p. 117 (Թ. Թերզյան)
+        r = scan_poem("Ոչ ծածուկ ծաղրածու արձագանքը,\n"
+                      "Ոչ սիրո նըվիրյալ հովանիք,\n"
+                      "Չեն գիտեր, չէ, սըրտիս տառապանքը,\n"
+                      "Չեն գիտեր զաղեկեզն իմ գաղտնիք։")
+        self.assertEqual([(l.pattern, l.extra) for l in r.lines],
+                         [((3, 3, 3), 1), ((3, 3, 3), 0)] * 2)
+
     def test_gold_set_baseline(self):
         ok, total = gold_report.run(verbose=False)
         self.assertGreaterEqual(ok, 32, "regression on tests/data/gold.txt")

@@ -30,6 +30,10 @@ PROTHETIC = {"զբ", "զգ", "զդ", "զմ", "սկ", "սպ", "սք", "ստ", "ս
 # §17 Բ p. 62-63: after these consonants the prothetic ը drops easily
 EASY_BEFORE_S = set("նմրռվխղգկք")
 
+# words ending like the article -ս/-դ that are not articled forms
+NOT_ARTICLE = {"մարդ", "վարդ", "բերդ", "զարդ", "սարդ", "երդ", "պինդ", "խինդ",
+               "անդ", "ընդ", "ներս", "դուրս", "չորս", "կարդ", "արդ", "ապա"}
+
 PUNCT_PAUSE = set(",.;:!?…—–՝։՞«»()\"")
 
 
@@ -309,6 +313,10 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
                 proth_choices = [(True, 0, ""), (False, c, f"{word}: −ը- (§17 Բ)")]
         elif l1 == "յ":
             natural += _medial(segs, init[1:])
+        elif classical and l0 == "զ":
+            # Grabar prefix զ-: its ը is freely kept or dropped (p. 65 note)
+            natural.append(Ins(init[1], 0, "p. 65"))
+            natural += _medial(segs, init[1:])
         else:
             if len(init) == 2:
                 if l0 + l1 in ("հր", "խր"):
@@ -341,7 +349,7 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
         # §14 Ա p. 44: in compounds the second part keeps its initial ը
         # (ուխտանըվեր, ծաղկապըսակ).  Compounds can't be detected, so this
         # is offered as a light licence in any medial 2-consonant cluster.
-        if len(R) == 2 and not ins and segs[R[1]].letter != "յ" \
+        if len(R) == 2 and not ins and "յ" not in _L(segs, R) \
                 and segs[R[-1]].letter != segs[R[-2]].letter:
             c = 1 if segs[R[1]].letter in SONORANTS | {"վ"} else 2
             options.append(Opt(+1, c, f"{word}: +ը, compound? (§14 Ա p. 44)",
@@ -360,7 +368,9 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
             if b == "ն":
                 c = 0 if len(F) <= 3 else 1  # §15 Գ p. 52-53
             elif b in ("ս", "դ"):
-                c = 2  # §15 Դ p. 54
+                # §15 Դ p. 53-54, §17 p. 63: easy after one consonant that
+                # joins ս/դ (պատկերդ, գետակդ); otherwise unnatural (սիրածս)
+                c = 1 if len(F) == 2 and segs[F[0]].letter in CODA_FIRST | set("գկք") else 2
             else:
                 c = 1 if len(F) == 2 else 2  # §15 Ե p. 55-56
         elif next_h and not pause_after and last and segs[k].letter == "ն":
@@ -371,7 +381,7 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
             c = 2  # §15 Ա-Բ: "for the eye only"
         natural.append(Ins(k, c, "§15"))
     if len(F) == 2 and not fins and segs[F[-1]].letter in ("ս", "դ", "մ") \
-            and segs[F[0]].letter != "յ":  # not after a diphthong: այս, լույս
+            and segs[F[0]].letter != "յ" and core not in NOT_ARTICLE:
         options.append(Opt(+1, 0, "", add=F[-1]))  # սերըս / սերս, այժըմ
 
     # --- vowels: dieresis and synizesis (§16 Ա)

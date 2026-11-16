@@ -31,7 +31,7 @@ def _opts(p: argparse.ArgumentParser):
 def _kw(a):
     return dict(orthography=a.orthography, min_group=a.min_group,
                 max_group=a.max_group, max_cost=a.max_cost,
-                soft_cut_cost=None if a.strict_members else 1)
+                soft_cut_cost=None if a.strict_members else 0.5)
 
 
 def print_poem(r: PoemResult, out=sys.stdout):
@@ -47,7 +47,7 @@ def print_poem(r: PoemResult, out=sys.stdout):
         nat = l.natural_pattern
         alt = (f"   natural: {'|'.join(map(str, nat))}"
                if nat and nat != l.pattern else "")
-        print(f"{l.marked:<60} {fmt(l.pattern)}{flag}{alt}{lic}", file=out)
+        print(f"{l.marked:<60} {fmt(l.pattern, l.extra)}{flag}{alt}{lic}", file=out)
     meters = ", ".join(f"{fmt(p)} ×{c}" for p, c in r.meters)
     print(f"-- meters: {meters}; regularity {r.regularity:.0%}"
           f"{'; classical orthography' if r.classical else ''}", file=out)
@@ -94,7 +94,7 @@ def main(argv=None):
     if a.cmd == "line":
         r = scan_poem(a.text, **kw)
         l = r.lines[0]
-        print(f"{l.marked}  {fmt(l.pattern)}")
+        print(f"{l.marked}  {fmt(l.pattern, l.extra)}")
         if l.licences:
             print("licences:", "; ".join(l.licences))
         alts = sorted(l.analysis.candidates, key=lambda p: (len(p), p))
@@ -131,6 +131,7 @@ def main(argv=None):
                     "text": l.text, "scansion": l.marked,
                     "syllables": sum(l.pattern) if l.pattern else "",
                     "pattern": "|".join(map(str, l.pattern)) if l.pattern else "",
+                    "extra_syllables": l.extra,
                     "regular": int(l.regular),
                     "natural_pattern": "|".join(map(str, l.natural_pattern or ())),
                     "licences": "; ".join(l.licences),

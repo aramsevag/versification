@@ -50,5 +50,19 @@ the program makes its own choice.
 - `python3 -m tests.gold_report` prints the line-by-line comparison with
   `tests/data/gold.txt`. Add your own hand scansions there to measure accuracy.
 
+### Benchmark from Abeghyan's own examples
+
+With a text copy of the book (not included in the repository):
+
+```bash
+python3 -m tests.extract_abeghyan Abeghyan.txt lines.tsv   # ~650 quoted verse lines
+python3 -m tests.abeghyan_report lines.tsv                  # per-section accuracy
+python3 -m tests.abeghyan_report lines.tsv 43               # line-by-line for §43
+```
+
+The expected values are each section's syllable count and scheme. Many "errors" are
+extraction noise (prose, merged or split lines, OCR) or Abeghyan's own counterexamples, so the
+scores are a lower bound.
+
 Not yet handled: «Հայրենի կարգ», ashugh meters, purely stress-based and free verse (see
 RULES.md §6).

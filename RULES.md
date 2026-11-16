@@ -54,7 +54,7 @@ every licence used next to the line.
 | Drop the ը in ցն/ցր after ր (կորցրի) | 1 | §14 Դ p. 47 |
 | Drop the ը in ցն/ցր after other consonants (հանգցնել) | 2 | §14 Դ p. 47 |
 | Drop the ը before վ when the two preceding consonants can't close a syllable (զարնվել) | 2 | §14 Գ p. 46 |
-| Final ըս/ըդ elided before a vowel, joining easily | 1 | §15 Դ p. 53 |
+| Final ըս/ըդ elided before a vowel, after one consonant that joins easily (պատկերդ, գետակդ) | 1 | §15 Դ p. 53; §17 p. 63 |
 | Final ըս/ըդ elided before a vowel, otherwise (սիրածս էլ) | 2 | §15 Դ p. 54 |
 | Final ըր/ըղ/ըմ elided before a vowel (ծանր է) | 1 | §15 Ե p. 55 |
 | Final ըր/ըղ/ըմ elided before a vowel, after 2+ consonants (աստղ ու, քաղցր ու) | 2 | §15 Ե p. 56 |
@@ -64,6 +64,8 @@ every licence used next to the line.
 | Dieresis: classical եա/իւ, or ու before a vowel, read as two syllables (Ովկեանի = Ով-կե-ա-նի) | 1 | §16 Ա p. 60 (միուս) **[choice]** |
 | Extra ը in a geminate (փըթըթին, զընընել) | 1 | §14 Բ p. 44 |
 | Extra ը in a medial 2-consonant cluster, as at a compound boundary (ուխտագընաց, ուխտանըվեր). **[choice]** The program can't detect compounds, so it allows this anywhere: light before a sonorant or վ, heavy otherwise. | 1 / 2 | §14 Ա p. 44 |
+
+In classical texts the ը after the prefix զ- (զխոցուած) is kept or dropped freely, at no cost (§18 note, p. 65).
 
 A clitic written with an apostrophe (կ'ասե, մ'արունիկ, 'ւ) has no syllable of its own (§18, pp. 64–65).
 
@@ -87,12 +89,18 @@ member (§30.3, p. 101: «Գերեզմաննե|րըն լուռ էին»). So the
 |---|---|---|
 | After a stressed word-final syllable | 0 | Ահա սըրտիս \| խոպան… |
 | Inside a word, before its unstressed final ը-syllable | 0 | ձեռ\|քըդ, սիր\|տըս, քարավա\|նը |
-| After an unstressed ending (enclitic, final ը) | 1 **[choice]** | Ու փչում է \| աշնան, Եվ քարավանը \| |
+| After an unstressed ending (enclitic, final ը, որ, թէ) | 0.5 **[choice]** | Ու փչում է \| աշնան, Եվ քարավանը \|, Ալեկոծում է \| կասկածն ահարկու |
 | After a proclitic, or inside a hyphenated word | never | |
+
+**Line end (§36, pp. 116–119).** An unstressed syllable after the line's last stress (a final
+ը-syllable or an enclitic) may stand outside the meter, making a *hypercatalectic* line:
+`Սենյակում կողովով ալպյան վա՛րդը` = 9+1 (3|3|3+1). This reading costs 0.5 **[choice]**, so it is
+used only when it brings the line into the poem's meter. Such a line counts as a regular line of
+that meter.
 
 **[choice]** Abeghyan's rule would forbid the third kind of cut. Your own scansions use it
 (Ու փչում է | աշնան), and he himself notes that Isahakyan often breaks it (§67, p. 225). So the
-program allows it at a small cost; `--strict-members` forbids it.
+program allows it at half the cost of a light licence. Abeghyan himself classes such 10-syllable lines as 5+5, but "syllabic" rather than iambic (§65). `--strict-members` forbids these cuts.
 
 ## 6. Choosing the meter
 
@@ -115,13 +123,13 @@ Catalogue used (members, Part 2):
 | 8 | 4+4 | 43 |
 | 12 | 4+4+4 | 44 |
 | 16 | 4+4+4+4 | 45 |
-| 7 | 4+3 | 46 |
-| 11 | 4+4+3 | 47 |
+| 7 | 4+3, 3+4 | 46 |
+| 11 | 4+4+3, 3+4+4 | 47 |
 | 15 | 4+4+4+3 | 48 |
 | 14 | 4+3+4+3 | 49 |
 | 12 | 3+4+5 | 50 |
-| 9 | 4+5 | 51 |
-| 13 | 4+4+5 | 52 |
+| 9 | 4+5, 5+4 | 51 |
+| 13 | 4+4+5, 5+4+4 | 52 |
 | 6, 9, 12 | 3+3, 3+3+3, 3+3+3+3 | 55–57 |
 | 11 | 3+3+2+3, 3+3+3+2 | 58, 62 |
 | 8 | 2+3+3 | 60 |

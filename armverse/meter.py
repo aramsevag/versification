@@ -21,10 +21,11 @@ from .phonology import is_classical
 from .scan import LineAnalysis, Scansion, analyze_line
 
 
-def fmt(pattern: tuple[int, ...] | None) -> str:
+def fmt(pattern: tuple[int, ...] | None, extra: int = 0) -> str:
     if not pattern:
         return "?"
-    return f"{sum(pattern)} ({'|'.join(map(str, pattern))})"
+    plus = f"+{extra}" if extra else ""
+    return f"{sum(pattern)}{plus} ({'|'.join(map(str, pattern))}{plus})"
 
 
 def _pref(p: tuple[int, ...]):
@@ -65,6 +66,10 @@ class ScannedLine:
         return self.analysis.render(self.analysis.candidates[p]) if p else ""
 
     @property
+    def extra(self) -> int:
+        return self.scansion.extra if self.scansion else 0
+
+    @property
     def licences(self) -> list[str]:
         return self.scansion.licences if self.scansion else []
 
@@ -99,8 +104,10 @@ class PoemResult:
 # Meters catalogued by Abeghyan, Part 2 (see RULES.md §6).
 CATALOGUE = {
     (4, 4), (4, 4, 4), (4, 4, 4, 4),            # §§43-45
-    (4, 3), (4, 4, 3), (4, 4, 4, 3),            # §§46-48
-    (4, 3, 4, 3), (3, 4, 5), (4, 5), (4, 4, 5),  # §§49-52
+    (4, 3), (3, 4), (4, 4, 3), (3, 4, 4),      # §§46-47, both forms
+    (4, 4, 4, 3),                               # §48
+    (4, 3, 4, 3), (3, 4, 5), (4, 5), (5, 4),    # §§49-51
+    (4, 4, 5), (5, 4, 4),                       # §52, both forms
     (3, 3), (3, 3, 3), (3, 3, 3, 3),            # §§55-57
     (3, 3, 2, 3), (3, 3, 3, 2), (2, 3, 3),      # §§58, 60, 62
     (5,), (5, 5), (5, 5, 5), (5, 5, 5, 5),      # §§64-67
@@ -143,7 +150,7 @@ def choose_patterns(analyses: list[LineAnalysis], licence_penalty: float = 0.4,
 
 def scan_poem(text: str, title: str = "", orthography: str = "auto",
               min_group: int = 2, max_group: int = 5,
-              max_cost: int = 3, soft_cut_cost: int | None = 1,
+              max_cost: float = 3, soft_cut_cost: float | None = 0.5,
               licence_penalty: float = 0.4,
               catalogue_bonus: float = 1.0) -> PoemResult:
     classical = (is_classical(text) if orthography == "auto"
