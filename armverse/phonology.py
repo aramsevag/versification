@@ -228,6 +228,33 @@ def core_of(token: str) -> tuple[str, list[int]]:
     return "".join(chars), cmap
 
 
+def _load_lexicon() -> dict[str, str]:
+    path = __import__("pathlib").Path(__file__).parent / "data" / "lexicon.txt"
+    lex = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            w = line.strip().lower()
+            if w and not w.startswith("#"):
+                lex[w.replace("ը", "")] = w
+    return lex
+
+
+LEXICON = _load_lexicon()
+
+
+def _apply_lexicon(token: str) -> str:
+    """Respell a token from the lexicon (ուխտագնաց -> ուխտագընաց), keeping
+    its capitalisation and punctuation."""
+    core, cmap = core_of(token)
+    form = LEXICON.get(core)
+    if not form or form == core or not cmap:
+        return token
+    a, b = cmap[0], cmap[-1] + 1
+    if token[a].isupper():
+        form = form[0].upper() + form[1:]
+    return token[:a] + form + token[b:]
+
+
 def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
                  pause_after: bool = True, classical: bool = False,
                  max_cost: int = 3, max_options: int = 4) -> WordAnalysis:
@@ -237,6 +264,7 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
               'ը' (in ը), or the previous word's final consonant letter.
     next_vowel / pause_after: what follows the word.
     """
+    token = _apply_lexicon(token)
     core, cmap = core_of(token)
     segs = segment(core, classical)
     wa = WordAnalysis(token, core, cmap, segs)

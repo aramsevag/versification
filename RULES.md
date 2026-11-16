@@ -25,6 +25,8 @@ The unwritten ը is restored as follows.
 | Word end, 3 consonants ending in ք | allowed | պարտք, կուրծք | §9 p. 32 |
 
 Written ը is always pronounced (§14, p. 41: «Ոտանավորի մեջ չսղված Ը ձայնավորը գրվում է»).
+Words listed in `armverse/data/lexicon.txt` are read as if the ը were written there too
+(ուխտագընաց, confirmed by the project author).
 
 ## 2. Equally natural alternatives (cost 0)
 

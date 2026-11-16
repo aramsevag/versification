@@ -1,0 +1,5 @@
+# Words whose pronunciation the rules can't work out (mostly compounds).
+# One word per line, written with every pronounced ը, e.g. ուխտագընաց.
+# The program then treats this reading as natural (cost 0), as if the poet
+# had written the ը.  Lines starting with # are ignored.
+ուխտագընաց
