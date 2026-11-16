@@ -60,6 +60,7 @@ every licence used next to the line.
 | Synizesis of other vowel pairs | 2 | §16 Ա **[choice]** |
 | Dieresis: classical եա/իւ, or ու before a vowel, read as two syllables (Ովկեանի = Ով-կե-ա-նի) | 1 | §16 Ա p. 60 (միուս) **[choice]** |
 | Extra ը in a geminate (փըթըթին, զընընել) | 1 | §14 Բ p. 44 |
+| Extra ը in a medial 2-consonant cluster, as at a compound boundary (ուխտագընաց, ուխտանըվեր). **[choice]** The program can't detect compounds, so it allows this anywhere: light before a sonorant or վ, heavy otherwise. | 1 / 2 | §14 Ա p. 44 |
 
 A clitic written with an apostrophe (կ'ասե, մ'արունիկ, 'ւ) has no syllable of its own (§18, pp. 64–65).
 

@@ -308,6 +308,14 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
             elif not any(i.k == k for i in ins):
                 c = 1 if segs[R[-3]].letter == "ր" else 2
                 ins.append(Ins(k, c, "§14 Դ p. 47"))
+        # §14 Ա p. 44: in compounds the second part keeps its initial ը
+        # (ուխտանըվեր, ծաղկապըսակ).  Compounds can't be detected, so this
+        # is offered as a light licence in any medial 2-consonant cluster.
+        if len(R) == 2 and not ins and segs[R[1]].letter != "յ" \
+                and segs[R[-1]].letter != segs[R[-2]].letter:
+            c = 1 if segs[R[1]].letter in SONORANTS | {"վ"} else 2
+            options.append(Opt(+1, c, f"{word}: +ը, compound? (§14 Ա p. 44)",
+                               add=R[1]))
         if len(R) >= 2 and segs[R[-1]].letter == segs[R[-2]].letter:
             options.append(Opt(+1, 1, f"{word}: +ը (§14 Բ)", add=R[-1]))
         natural += ins

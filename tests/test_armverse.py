@@ -72,7 +72,7 @@ class TestScansion(unittest.TestCase):
 
     def test_gold_set_baseline(self):
         ok, total = gold_report.run(verbose=False)
-        self.assertGreaterEqual(ok, 12, "regression on tests/data/gold.txt")
+        self.assertGreaterEqual(ok, 32, "regression on tests/data/gold.txt")
 
 
 if __name__ == "__main__":
