@@ -69,6 +69,8 @@ A clitic written with an apostrophe (կ'ասե, մ'արունիկ, 'ւ) has no s
 Word stress falls on the last syllable; if that syllable's vowel is ը, it falls on the one
 before (§5, p. 20; §22, p. 77). Clitics are unstressed:
 - **proclitics** (lean on the next word): մի, կը, չը, ու, և, ի, առ, ըստ.
+- **unstressed, but a member may end on them** (at the soft-cut cost, §5): որ, թէ/թե, եթէ/եթե
+  (confirmed by the project author).
 - **enclitics** (lean on the previous word): the forms of եմ (է, են, էր...), էլ, մը, ալ, and the
   articles.
 
@@ -90,6 +92,13 @@ member (§30.3, p. 101: «Գերեզմաննե|րըն լուռ էին»). So the
 program allows it at a small cost; `--strict-members` forbids it.
 
 ## 6. Choosing the meter
+
+Each line is reported twice:
+- **pattern**: the division that fits the poem's meter;
+- **natural**: the line's own cheapest division, ignoring the poem. It is shown only when it
+  differs, e.g. `Երթա՜լ՝ առանց | գիտնալու թէ | դէպի ո՞ւր  11 (4|4|3)  natural: 4|3|4`, where the
+  unstressed թէ stands in a stressed position (§25).
+
 
 The poem's meter is the pattern most of its lines support, weighed against the licences each
 line needs to reach it. The meters catalogued by Abeghyan (Part 2, §§40–92) get a bonus. A

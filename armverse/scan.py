@@ -19,6 +19,9 @@ from .phonology import (PUNCT_PAUSE, WordAnalysis, analyze_word, core_of,
 
 PROCLITICS = {"մի", "կը", "չը", "ու", "և", "եւ", "ի", "յ", "զ", "առ", "ըստ", "ընդ",
               "կ", "չ"}
+# Unstressed words a member may still end on, at the soft-cut cost
+# (Չըգիտնալ որ | ...); confirmed by the project author.
+UNSTRESSED = {"որ", "թէ", "թե", "եթէ", "եթե"}
 ENCLITICS = {"եմ", "է", "ենք", "եք", "են", "էի", "էիր", "էր", "էինք", "էիք", "էին",
              "եմք", "էք", "էլ", "մը", "ալ", "պես"}
 
@@ -101,7 +104,7 @@ def analyze_line(line: str, classical: bool = False, min_group: int = 2,
         return la
     cores = [_core(t) for t, _ in toks]
     can_cut = [not j and c not in PROCLITICS for (t, j), c in zip(toks, cores)]
-    clitic = [c in ENCLITICS or c in PROCLITICS for c in cores]
+    clitic = [c in ENCLITICS or c in PROCLITICS or c in UNSTRESSED for c in cores]
     lo, hi = min_group, max_group
 
     @lru_cache(maxsize=None)

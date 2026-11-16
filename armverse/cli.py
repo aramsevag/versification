@@ -44,7 +44,10 @@ def print_poem(r: PoemResult, out=sys.stdout):
         stanza = l.stanza
         flag = "" if l.regular else "  *"
         lic = f"   [{'; '.join(l.licences)}]" if l.licences else ""
-        print(f"{l.marked:<60} {fmt(l.pattern)}{flag}{lic}", file=out)
+        nat = l.natural_pattern
+        alt = (f"   natural: {'|'.join(map(str, nat))}"
+               if nat and nat != l.pattern else "")
+        print(f"{l.marked:<60} {fmt(l.pattern)}{flag}{alt}{lic}", file=out)
     meters = ", ".join(f"{fmt(p)} ×{c}" for p, c in r.meters)
     print(f"-- meters: {meters}; regularity {r.regularity:.0%}"
           f"{'; classical orthography' if r.classical else ''}", file=out)
@@ -129,6 +132,7 @@ def main(argv=None):
                     "syllables": sum(l.pattern) if l.pattern else "",
                     "pattern": "|".join(map(str, l.pattern)) if l.pattern else "",
                     "regular": int(l.regular),
+                    "natural_pattern": "|".join(map(str, l.natural_pattern or ())),
                     "licences": "; ".join(l.licences),
                     "alternatives": len(l.analysis.candidates),
                 })

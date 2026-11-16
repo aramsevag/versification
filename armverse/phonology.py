@@ -336,7 +336,8 @@ def analyze_word(token: str, prev_end: str = "start", next_vowel: bool = False,
         else:
             c = 2  # §15 Ա-Բ: "for the eye only"
         natural.append(Ins(k, c, "§15"))
-    if len(F) == 2 and not fins and segs[F[-1]].letter in ("ս", "դ", "մ"):
+    if len(F) == 2 and not fins and segs[F[-1]].letter in ("ս", "դ", "մ") \
+            and segs[F[0]].letter != "յ":  # not after a diphthong: այս, լույս
         options.append(Opt(+1, 0, "", add=F[-1]))  # սերըս / սերս, այժըմ
 
     # --- vowels: dieresis and synizesis (§16 Ա)

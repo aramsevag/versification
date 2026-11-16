@@ -49,6 +49,22 @@ class ScannedLine:
         return self.scansion.pattern if self.scansion else None
 
     @property
+    def natural_pattern(self):
+        """The line's own best division of the same syllables, ignoring the
+        poem's meter: the cheapest candidate with the same syllable total as
+        the chosen pattern (ties as in _pref)."""
+        c = self.analysis.candidates
+        if not c or not self.pattern:
+            return None
+        same = [p for p in c if sum(p) == sum(self.pattern)]
+        return min(same, key=lambda p: (c[p].cost, _pref(p)))
+
+    @property
+    def natural_marked(self):
+        p = self.natural_pattern
+        return self.analysis.render(self.analysis.candidates[p]) if p else ""
+
+    @property
     def licences(self) -> list[str]:
         return self.scansion.licences if self.scansion else []
 
